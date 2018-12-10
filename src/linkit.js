@@ -3,17 +3,17 @@ import LinkitEditing from './linkitediting';
 import LinkitUI from './linkitui';
 
 export default class Linkit extends Link {
-  /**
+	/**
    * @inheritDoc
    */
-  static get requires() {
-    return [ LinkitEditing, LinkitUI ];
-  }
+	static get requires() {
+		return [ LinkitEditing, LinkitUI ];
+	}
 
-  /**
+	/**
    * @inheritDoc
    */
-  static get pluginName() {
-    return 'Linkit';
-  }
+	static get pluginName() {
+		return 'Linkit';
+	}
 }
