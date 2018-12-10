@@ -1,5 +1,5 @@
 {
-  "name": "ckeditor5-drupal-linkit",
+  "name": "@amazee/ckeditor5-drupal-linkit",
   "version": "0.0.1",
   "description": "Drupal Linkit integration feature for CKEditor 5.",
   "keywords": [
