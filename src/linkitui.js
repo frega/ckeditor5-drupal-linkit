@@ -14,13 +14,13 @@ import LinkUI from '@ckeditor/ckeditor5-link/src/linkui';
  */
 export default class LinkitUI extends LinkUI {
 	/**
-   * Makes the UI react to the {@link module:core/editor/editorui~EditorUI#event:update} event to
-   * reposition itself when the editor ui should be refreshed.
-   *
-   * See: {@link #_hideUI} to learn when the UI stops reacting to the `update` event.
-   *
-   * @protected
-   */
+	 * Makes the UI react to the {@link module:core/editor/editorui~EditorUI#event:update} event to
+	 * reposition itself when the editor ui should be refreshed.
+	 *
+	 * See: {@link #_hideUI} to learn when the UI stops reacting to the `update` event.
+	 *
+	 * @protected
+	 */
 	_startUpdatingUI() {
 		const editor = this.editor;
 		const viewDocument = editor.editing.view.document;
@@ -43,7 +43,7 @@ export default class LinkitUI extends LinkUI {
 			// Note: #_getSelectedLinkElement will return a link for a non-collapsed selection only
 			// when fully selected.
 			if ( ( prevSelectedLink && !selectedLink ) ||
-        ( !prevSelectedLink && selectionParent !== prevSelectionParent ) ) {
+				( !prevSelectedLink && selectionParent !== prevSelectionParent ) ) {
 				this._hideUI();
 			}
 			// Update the position of the panel when:
@@ -70,11 +70,11 @@ export default class LinkitUI extends LinkUI {
 	}
 
 	/**
-   * Shows the right kind of the UI for current state of the command. It's either
-   * {@link #formView} or {@link #actionsView}.
-   *
-   * @private
-   */
+	 * Shows the right kind of the UI for current state of the command. It's either
+	 * {@link #formView} or {@link #actionsView}.
+	 *
+	 * @private
+	 */
 	_showUI() {
 		const editor = this.editor;
 		const linkCommand = editor.commands.get( 'link' );
@@ -106,10 +106,10 @@ export default class LinkitUI extends LinkUI {
 	}
 
 	/**
-   * Adds the {@link #formView} to the {@link #_balloon}.
-   *
-   * @protected
-   */
+	 * Adds the {@link #formView} to the {@link #_balloon}.
+	 *
+	 * @protected
+	 */
 	_addFormView() {
 		if ( this._isFormInPanel ) {
 			return;
@@ -117,6 +117,7 @@ export default class LinkitUI extends LinkUI {
 
 		const editor = this.editor;
 		const linkCommand = editor.commands.get( 'link' );
+		const viewDocument = editor.editing.view.document;
 
 		this._linkSelector = editor.config.get( 'drupalLinkSelector' );
 		if ( this._linkSelector ) {
@@ -126,6 +127,38 @@ export default class LinkitUI extends LinkUI {
 					attrs[ key ] = value;
 				}
 			}
+			let data = editor.getData();
+
+			if ( !attrs.linkitAttrs ) {
+				attrs.linkitAttrs = {};
+			}
+
+			const selectionParent = getSelectionParent();
+			if ( selectionParent && selectionParent.getAttribute( 'links-filter' ) ) {
+				const filterClass = selectionParent.getAttribute( 'links-filter' );
+				const parentFilter = selectionParent.getAttribute( 'links-filter-parent' );
+				let selector = filterClass;
+
+				if ( parentFilter ) {
+					const parentCard = selectionParent.getAncestors().find( node => node.hasClass( parentFilter ) );
+					if ( parentCard && parentCard.getAttribute( 'id' ) ) {
+						selector = '#' + parentCard.getAttribute( 'id' ) + ' ' + filterClass;
+					}
+				}
+
+				const filteredData = editor.sourceElement.querySelectorAll( selector );
+
+				let newData = '';
+				for ( const item of filteredData ) {
+					newData += item.outerHTML;
+				}
+				data = newData;
+
+				attrs.linkitAttrs[ 'links-filter' ] = filterClass;
+			}
+
+			attrs.linkitAttrs.editorData = data;
+
 			this._linkSelector( attrs.linkitAttrs );
 		} else {
 			this._balloon.add( {
@@ -142,6 +175,11 @@ export default class LinkitUI extends LinkUI {
 			// https://github.com/ckeditor/ckeditor5-link/issues/78
 			// https://github.com/ckeditor/ckeditor5-link/issues/123
 			this.formView.urlInputView.inputView.element.value = linkCommand.value || '';
+		}
+		function getSelectionParent() {
+			return viewDocument.selection.focus.getAncestors()
+				.reverse()
+				.find( node => node.is( 'element' ) );
 		}
 	}
 }
