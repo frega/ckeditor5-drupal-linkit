@@ -119,7 +119,7 @@ export default class LinkitUI extends LinkUI {
 		const linkCommand = editor.commands.get( 'link' );
 		const viewDocument = editor.editing.view.document;
 
-		this._linkSelector = editor.config.get( 'drupalLinkSelector' );
+		this._linkSelector = editor.config.get( 'drupalLinkSelector' ).callback;
 		if ( this._linkSelector ) {
 			const attrs = {};
 			if ( linkCommand.attributes ) {
@@ -159,7 +159,9 @@ export default class LinkitUI extends LinkUI {
 
 			attrs.linkitAttrs.editorData = data;
 
-			this._linkSelector( attrs.linkitAttrs );
+			this._linkSelector( attrs.linkitAttrs, values => {
+				this.editor.execute( 'link', values );
+			} );
 		} else {
 			this._balloon.add( {
 				view: this.formView,
