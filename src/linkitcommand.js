@@ -3,7 +3,6 @@
  */
 
 import Command from '@ckeditor/ckeditor5-core/src/command';
-import Range from '@ckeditor/ckeditor5-engine/src/model/range';
 import findLinkRange from '@ckeditor/ckeditor5-link/src/findlinkrange';
 import toMap from '@ckeditor/ckeditor5-utils/src/tomap';
 
@@ -56,14 +55,12 @@ export default class LinkitCommand extends Command {
 		model.change( writer => {
 			// If selection is collapsed then update selected link or insert new one at the place of caret.
 			if ( selection.isCollapsed ) {
-				// TODO: check this case.
 				const position = selection.getFirstPosition();
 
 				// When selection is inside text with `linkHref` attribute.
 				if ( selection.hasAttribute( 'linkHref' ) ) {
 					// Then update `linkHref` value.
-					const linkRange = findLinkRange( selection.getFirstPosition(), selection.getAttribute( 'linkHref' ) );
-
+					const linkRange = findLinkRange( selection.getFirstPosition(), selection.getAttribute( 'linkHref' ), model );
 					writer.setAttribute( 'linkHref', attrs.href, linkRange );
 
 					// Create new range wrapping changed link.
@@ -81,7 +78,7 @@ export default class LinkitCommand extends Command {
 					writer.insert( node, position );
 
 					// Create new range wrapping created node.
-					writer.setSelection( Range.createOn( node ) );
+					writer.setSelection( writer.createRangeOn( node ) );
 				}
 			} else {
 				// If selection has non-collapsed ranges, we change attribute on nodes inside those ranges
