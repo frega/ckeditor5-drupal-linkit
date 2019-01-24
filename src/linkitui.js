@@ -3,6 +3,7 @@
  */
 
 import LinkUI from '@ckeditor/ckeditor5-link/src/linkui';
+import clickOutsideHandler from '@ckeditor/ckeditor5-ui/src/bindings/clickoutsidehandler';
 
 /**
  * The linkit UI plugin. It introduces the Link and Unlink buttons and the <kbd>Ctrl+K</kbd> keystroke.
@@ -13,6 +14,66 @@ import LinkUI from '@ckeditor/ckeditor5-link/src/linkui';
  * @extends module:core/plugin~Plugin
  */
 export default class LinkitUI extends LinkUI {
+	/**
+	 * Attaches actions that control whether the balloon panel containing the
+	 * {@link #formView} is visible or not.
+	 *
+	 * @private
+	 */
+	_enableUserBalloonInteractions() {
+		const viewDocument = this.editor.editing.view.document;
+
+		// Handle click on view document and show panel when selection is placed inside the link element.
+		// Keep panel open until selection will be inside the same link element.
+		this.listenTo( viewDocument, 'click', () => {
+			const parentLink = this._getSelectedLinkElement();
+
+			if ( parentLink ) {
+				// Then show panel but keep focus inside editor editable.
+				this._showUI();
+			}
+		} );
+
+		// Focus the form if the balloon is visible and the Tab key has been pressed.
+		this.editor.keystrokes.set( 'Tab', ( data, cancel ) => {
+			if ( this._areActionsVisible && !this.actionsView.focusTracker.isFocused ) {
+				this.actionsView.focus();
+				cancel();
+			}
+		}, {
+			// Use the high priority because the link UI navigation is more important
+			// than other feature's actions, e.g. list indentation.
+			// https://github.com/ckeditor/ckeditor5-link/issues/146
+			priority: 'high'
+		} );
+
+		// Close the panel on the Esc key press when the editable has focus and the balloon is visible.
+		this.editor.keystrokes.set( 'Esc', ( data, cancel ) => {
+			if ( this._isUIVisible ) {
+				this._hideUI();
+				cancel();
+			}
+		} );
+
+		// Close on click outside of balloon panel element.
+		clickOutsideHandler( {
+			emitter: this.formView,
+			activator: () => this._isUIVisible,
+			contextElements: [ this._balloon.view.element ],
+			callback: () => {
+				if ( !this._isUIInPanel ) {
+					return;
+				}
+
+				// Remove form first because it's on top of the stack.
+				this._removeFormView();
+
+				// Then remove the actions view because it's beneath the form.
+				this._balloon.remove( this.actionsView );
+			}
+		} );
+	}
+
 	/**
 	 * Makes the UI react to the {@link module:core/editor/editorui~EditorUI#event:update} event to
 	 * reposition itself when the editor ui should be refreshed.
@@ -85,8 +146,6 @@ export default class LinkitUI extends LinkUI {
 
 		// When there's no link under the selection, go straight to the editing UI.
 		if ( !this._getSelectedLinkElement() ) {
-			// TODO: check if we can remove it.
-			// this._addActionsView();
 			this._addFormView();
 		}
 		// If theres a link under the selection...
@@ -119,7 +178,7 @@ export default class LinkitUI extends LinkUI {
 		const linkCommand = editor.commands.get( 'link' );
 		const viewDocument = editor.editing.view.document;
 
-		this._linkSelector = editor.config.get( 'drupalLinkSelector' ).callback;
+		this._linkSelector = editor.config.get( 'drupalLinkSelector' ) ? editor.config.get( 'drupalLinkSelector' ).callback : null;
 		if ( this._linkSelector ) {
 			const attrs = {};
 			if ( linkCommand.attributes ) {
@@ -160,6 +219,7 @@ export default class LinkitUI extends LinkUI {
 			attrs.linkitAttrs.editorData = data;
 
 			this._linkSelector( attrs.linkitAttrs, values => {
+				editor.editing.view.focus();
 				this.editor.execute( 'link', values );
 			} );
 		} else {

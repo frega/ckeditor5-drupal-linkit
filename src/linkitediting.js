@@ -25,7 +25,7 @@ export default class LinkitEditing extends LinkEditing {
    */
 	init() {
 		const editor = this.editor;
-		this._linkSelector = editor.config.get( 'drupalLinkSelector' ).callback;
+		this._linkSelector = editor.config.get( 'drupalLinkSelector' ) ? editor.config.get( 'drupalLinkSelector' ).callback : null;
 
 		// Allow link attribute on all inline nodes.
 		editor.model.schema.extend( '$text', { allowAttributes: [ 'linkHref', 'linkitAttrs' ] } );
