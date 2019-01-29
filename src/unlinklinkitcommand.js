@@ -2,21 +2,35 @@
  * @module link/unlinkcommand
  */
 
-import Command from '@ckeditor/ckeditor5-core/src/command';
 import findLinkRange from '@ckeditor/ckeditor5-link/src/findlinkrange';
+import TemplateCommandBase from '@amazee/ckeditor5-template/src/commands/templatecommandbase';
 
 /**
  * The unlink command. It is used by the {@link module:link/link~Link link plugin}.
  *
  * @extends module:core/command~Command
  */
-export default class UnlinkLinkitCommand extends Command {
+export default class UnlinkLinkitCommand extends TemplateCommandBase {
 	/**
-   * @inheritDoc
-   */
+	 * Check if a given template and model element are applicable for this command.
+	 *
+	 * @param {module:template/utils/elementinfo~ElementInfo} templateElement
+	 * @param {module:engine/model/element~Element} modelElement
+	 */
+	// eslint-disable-next-line no-unused-vars
+	matchElement( templateElement, modelElement ) {
+		return templateElement.type === 'button';
+	}
+
+	/**
+     * @inheritDoc
+     */
 	refresh() {
-		this.isEnabled = this.editor.model.document.selection.hasAttribute( 'linkHref' ) ||
-			this.editor.model.document.selection.hasAttribute( 'linkitAttrs' );
+		super.refresh();
+		this.isEnabled =
+				!this._currentElement &&
+				( this.editor.model.document.selection.hasAttribute( 'linkHref' ) ||
+				this.editor.model.document.selection.hasAttribute( 'linkitAttrs' ) );
 	}
 
 	/**
@@ -30,6 +44,10 @@ export default class UnlinkLinkitCommand extends Command {
 	execute() {
 		const model = this.editor.model;
 		const selection = model.document.selection;
+
+		if ( selection.isCollapsed ) {
+			return;
+		}
 
 		model.change( writer => {
 			// Get ranges to unlink.
