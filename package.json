@@ -10,7 +10,7 @@
     "ckeditor5-plugin"
   ],
   "dependencies": {
-    "@amazee/ckeditor5-template": "^0.0.11",
+    "@amazee/ckeditor5-template": "^0.0.10",
     "@ckeditor/ckeditor5-link": "^10.1.0"
   },
   "devDependencies": {
