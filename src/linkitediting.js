@@ -3,6 +3,10 @@
  */
 
 import LinkEditing from '@ckeditor/ckeditor5-link/src/linkediting';
+import {
+	downcastAttributeToElement
+} from '@ckeditor/ckeditor5-engine/src/conversion/downcast-converters';
+import { upcastElementToAttribute } from '@ckeditor/ckeditor5-engine/src/conversion/upcast-converters';
 import LinkitCommand from './linkitcommand';
 import UnlinkLinkitCommand from './unlinklinkitcommand';
 import LinkCommand from '@ckeditor/ckeditor5-link/src/linkcommand';
@@ -31,27 +35,27 @@ export default class LinkitEditing extends LinkEditing {
 		editor.model.schema.extend( '$text', { allowAttributes: [ 'linkHref', 'linkitAttrs' ] } );
 
 		editor.conversion.for( 'dataDowncast' )
-			.attributeToElement( { model: 'linkHref', view: ( href, writer ) => {
+			.add( downcastAttributeToElement( { model: 'linkHref', view: ( href, writer ) => {
 				return createLinkElement( href, writer );
-			} } );
+			} } ) );
 
 		editor.conversion.for( 'editingDowncast' )
-			.attributeToElement( { model: 'linkHref', view: ( href, writer ) => {
+			.add( downcastAttributeToElement( { model: 'linkHref', view: ( href, writer ) => {
 				return createLinkElement( ensureSafeUrl( href ), writer );
-			} } );
+			} } ) );
 
 		editor.conversion.for( 'dataDowncast' )
-			.attributeToElement( { model: 'linkitAttrs', view: ( attributes, writer ) => {
+			.add( downcastAttributeToElement( { model: 'linkitAttrs', view: ( attributes, writer ) => {
 				return createLinkAttributeElement( attributes, writer );
-			} } );
+			} } ) );
 
 		editor.conversion.for( 'editingDowncast' )
-			.attributeToElement( { model: 'linkitAttrs', view: ( attributes, writer ) => {
+			.add( downcastAttributeToElement( { model: 'linkitAttrs', view: ( attributes, writer ) => {
 				return createLinkAttributeElement( attributes, writer );
-			} } );
+			} } ) );
 
 		editor.conversion.for( 'upcast' )
-			.elementToAttribute( {
+			.add( upcastElementToAttribute( {
 				view: {
 					name: 'a',
 					attributes: {
@@ -62,10 +66,10 @@ export default class LinkitEditing extends LinkEditing {
 					key: 'linkHref',
 					value: viewElement => viewElement.getAttribute( 'href' )
 				}
-			} );
+			} ) );
 
 		editor.conversion.for( 'upcast' )
-			.elementToAttribute( {
+			.add( upcastElementToAttribute( {
 				view: {
 					name: 'a'
 				},
@@ -79,7 +83,7 @@ export default class LinkitEditing extends LinkEditing {
 						return attrs;
 					}
 				}
-			} );
+			} ) );
 
 		// Create linking commands.
 		if ( this._linkSelector ) {
