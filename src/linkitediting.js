@@ -64,6 +64,7 @@ export default class LinkitEditing extends LinkEditing {
 				},
 				model: {
 					key: 'linkHref',
+
 					value: viewElement => viewElement.getAttribute( 'href' )
 				}
 			} ) );
