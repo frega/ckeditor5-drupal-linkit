@@ -1,6 +1,6 @@
 {
   "name": "@amazee/ckeditor5-drupal-linkit",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Drupal Linkit integration feature for CKEditor 5.",
   "keywords": [
     "ckeditor",
@@ -10,7 +10,7 @@
     "ckeditor5-plugin"
   ],
   "dependencies": {
-    "@amazee/ckeditor5-template": "^0.0.15",
+    "@amazee/ckeditor5-template": "^0.0.16",
     "@ckeditor/ckeditor5-link": "^10.1.0"
   },
   "devDependencies": {
