@@ -2,12 +2,26 @@
  * @module templates/elements/textelement
  */
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
-import { toWidget, toWidgetEditable } from '@ckeditor/ckeditor5-widget/src/utils';
 
 import TemplateEditing from '@amazee/ckeditor5-template/src/templateediting';
 import { downcastTemplateElement, getModelAttributes } from '@amazee/ckeditor5-template/src/utils/conversion';
-import Range from '@ckeditor/ckeditor5-engine/src/model/range';
-import { attachPlaceholder } from '@ckeditor/ckeditor5-engine/src/view/placeholder';
+import { postfixTemplateElement } from '@amazee/ckeditor5-template/src/utils/integrity';
+import DomEventObserver from '@ckeditor/ckeditor5-engine/src/view/observer/domeventobserver';
+import { downcastAttributeToAttribute } from '@ckeditor/ckeditor5-engine/src/conversion/downcast-converters';
+import { upcastAttributeToAttribute } from '@ckeditor/ckeditor5-engine/src/conversion/upcast-converters';
+
+// TODO: Attach a generic observer to trigger dialogs?
+class LinkSelectObserver extends DomEventObserver {
+	constructor( view ) {
+		super( view );
+		this.domEventType = 'selectLink';
+		this.useCapture = true;
+	}
+
+	onDomEvent( domEvent ) {
+		this.fire( domEvent.type, domEvent );
+	}
+}
 
 export default class ButtonElement extends Plugin {
 	/**
@@ -21,68 +35,68 @@ export default class ButtonElement extends Plugin {
 	 * @inheritDoc
 	 */
 	init() {
-		const buttonElements = this.editor.templates.getElementsByType( 'button' );
+		this.editor.editing.view.addObserver( LinkSelectObserver );
+		this._linkSelector = this.editor.config.get( 'drupalLinkSelector' ) ?
+			this.editor.config.get( 'drupalLinkSelector' ).callback :
+			null;
 
-		this.editor.model.schema.extend( '$text', {
-			allowIn: buttonElements.map( el => el.name ),
+		if ( !this._linkSelector ) {
+			return;
+		}
+
+		this.listenTo( this.editor.editing.view.document, 'selectLink', ( evt, data ) => {
+			const model = this.toModel( data.domTarget );
+			const templateElement = this.editor.templates.getElementInfo( model.name );
+			const attrs = getModelAttributes( templateElement, model );
+
+			if ( !attrs.linkitAttrs ) {
+				attrs.linkitAttrs = {};
+			}
+
+			attrs.linkitAttrs.editorData = this.editor.getData();
+
+			attrs.href = attrs[ 'link-target' ];
+			delete attrs[ 'link-target' ];
+			this._linkSelector( attrs, values => {
+				this.editor.editing.view.focus();
+				this.editor.model.change( writer => {
+					values[ 'link-target' ] = values.href;
+					delete values.href;
+					writer.setAttributes( values, model );
+				} );
+			} );
 		} );
 
-		// Text element editing downcast
+		this.editor.conversion.for( 'downcast' ).add( downcastAttributeToAttribute( {
+			model: 'link-target',
+			view: 'link-target',
+		} ) );
+
+		this.editor.conversion.for( 'upcast' ).add( upcastAttributeToAttribute( {
+			view: 'link-target',
+			model: 'link-target',
+		} ) );
+
+		// Default editing downcast conversions for template container elements without functionality.
 		this.editor.conversion.for( 'editingDowncast' ).add( downcastTemplateElement( this.editor, {
 			types: [ 'button' ],
 			view: ( templateElement, modelElement, viewWriter ) => {
-				const el = viewWriter.createEditableElement(
-					templateElement.tagName,
+				return viewWriter.createContainerElement(
+					'ck-button',
 					getModelAttributes( templateElement, modelElement )
 				);
-
-				if ( templateElement.text ) {
-					attachPlaceholder( this.editor.editing.view, el, templateElement.text );
-				}
-				return toWidgetEditable( templateElement.parent ? el : toWidget( el, viewWriter ), viewWriter );
 			}
-		} ), { priority: 'low ' } );
+		} ), { priority: 'high ' } );
 
-		for ( const element of buttonElements ) {
-			if ( element.configuration.plain === 'true' ) {
-				this.editor.model.schema.addAttributeCheck( ( context, attributeName ) => {
-					if ( context.endsWith( `${ element.name } $text` ) && ![ 'linkHref', 'linkitAttrs' ].includes( attributeName ) ) {
-						return false;
-					}
-				} );
-			}
-		}
+		// Postfix elements to make sure a templates structure is always correct.
+		this.editor.templates.registerPostFixer( [ 'button' ], postfixTemplateElement );
+	}
 
-		// Make sure everything inside a button element is a link.
-		this.editor.model.document.registerPostFixer( writer => {
-			for ( const entry of this.editor.model.document.differ.getChanges() ) {
-				if ( !( entry.name === '$text' ) ) {
-					continue;
-				}
-
-				const parent = entry.position.getAncestors().pop();
-				if ( !parent ) {
-					continue;
-				}
-
-				const elementInfo = this.editor.templates.getElementInfo( parent.name );
-
-				if ( !elementInfo || !( elementInfo.type === 'button' ) ) {
-					continue;
-				}
-
-				if ( parent.childCount === 0 ) {
-					continue;
-				}
-
-				const href = parent.getChild( 0 ).getAttribute( 'linkHref' ) || '#';
-				const attrs = parent.getChild( 0 ).getAttribute( 'linkitAttrs' ) || '';
-
-				const start = writer.createPositionAt( parent, 0 );
-				const end = writer.createPositionAt( parent, 'end' );
-
-				writer.setAttributes( { linkHref: href, linkitAttrs: attrs }, new Range( start, end ) );
-			}
-		} );
+	// TODO: Straight copy from @amazee/ckeditor5-template/commands/remotecontrolcommand
+	// Generalize this.
+	toModel( domElement ) {
+		const view = this.editor.editing.view.domConverter.mapDomToView( domElement );
+		const viewPosition = this.editor.editing.view.createPositionAt( view, 'end' );
+		return this.editor.editing.mapper.toModelPosition( viewPosition ).parent;
 	}
 }
