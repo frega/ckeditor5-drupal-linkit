@@ -3,10 +3,6 @@
  */
 
 import LinkEditing from '@ckeditor/ckeditor5-link/src/linkediting';
-import {
-	downcastAttributeToElement
-} from '@ckeditor/ckeditor5-engine/src/conversion/downcast-converters';
-import { upcastElementToAttribute } from '@ckeditor/ckeditor5-engine/src/conversion/upcast-converters';
 import LinkitCommand from './linkitcommand';
 import UnlinkLinkitCommand from './unlinklinkitcommand';
 import LinkCommand from '@ckeditor/ckeditor5-link/src/linkcommand';
@@ -34,57 +30,51 @@ export default class LinkitEditing extends LinkEditing {
 		// Allow link attribute on all inline nodes.
 		editor.model.schema.extend( '$text', { allowAttributes: [ 'linkHref', 'linkitAttrs' ] } );
 
-		editor.conversion.for( 'dataDowncast' )
-			.add( downcastAttributeToElement( { model: 'linkHref', view: ( href, writer ) => {
-				return createLinkElement( href, writer );
-			} } ) );
+		editor.conversion.for( 'dataDowncast' ).attributeToElement( { model: 'linkHref', view: ( href, writer ) => {
+			return createLinkElement( href, writer );
+		} } );
 
-		editor.conversion.for( 'editingDowncast' )
-			.add( downcastAttributeToElement( { model: 'linkHref', view: ( href, writer ) => {
-				return createLinkElement( ensureSafeUrl( href ), writer );
-			} } ) );
+		editor.conversion.for( 'editingDowncast' ).attributeToElement( { model: 'linkHref', view: ( href, writer ) => {
+			return createLinkElement( ensureSafeUrl( href ), writer );
+		} } );
 
-		editor.conversion.for( 'dataDowncast' )
-			.add( downcastAttributeToElement( { model: 'linkitAttrs', view: ( attributes, writer ) => {
-				return createLinkAttributeElement( attributes, writer );
-			} } ) );
+		editor.conversion.for( 'dataDowncast' ).attributeToElement( { model: 'linkitAttrs', view: ( attributes, writer ) => {
+			return createLinkAttributeElement( attributes, writer );
+		} } );
 
-		editor.conversion.for( 'editingDowncast' )
-			.add( downcastAttributeToElement( { model: 'linkitAttrs', view: ( attributes, writer ) => {
-				return createLinkAttributeElement( attributes, writer );
-			} } ) );
+		editor.conversion.for( 'editingDowncast' ).attributeToElement( { model: 'linkitAttrs', view: ( attributes, writer ) => {
+			return createLinkAttributeElement( attributes, writer );
+		} } );
 
-		editor.conversion.for( 'upcast' )
-			.add( upcastElementToAttribute( {
-				view: {
-					name: 'a',
-					attributes: {
-						href: true
-					}
-				},
-				model: {
-					key: 'linkHref',
-
-					value: viewElement => viewElement.getAttribute( 'href' )
+		editor.conversion.for( 'upcast' ).elementToAttribute( {
+			view: {
+				name: 'a',
+				attributes: {
+					href: true
 				}
-			} ) );
+			},
+			model: {
+				key: 'linkHref',
 
-		editor.conversion.for( 'upcast' )
-			.add( upcastElementToAttribute( {
-				view: {
-					name: 'a'
-				},
-				model: {
-					key: 'linkitAttrs',
-					value: viewElement => {
-						const attrs = {};
-						for ( const [ key, value ] of viewElement.getAttributes() ) {
-							attrs[ key ] = value;
-						}
-						return attrs;
+				value: viewElement => viewElement.getAttribute( 'href' )
+			}
+		} );
+
+		editor.conversion.for( 'upcast' ).elementToAttribute( {
+			view: {
+				name: 'a'
+			},
+			model: {
+				key: 'linkitAttrs',
+				value: viewElement => {
+					const attrs = {};
+					for ( const [ key, value ] of viewElement.getAttributes() ) {
+						attrs[ key ] = value;
 					}
+					return attrs;
 				}
-			} ) );
+			}
+		} );
 
 		// Create linking commands.
 		if ( this._linkSelector ) {

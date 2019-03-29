@@ -7,8 +7,6 @@ import TemplateEditing from '@amazee/ckeditor5-template/src/templateediting';
 import { downcastTemplateElement, getModelAttributes } from '@amazee/ckeditor5-template/src/utils/conversion';
 import { postfixTemplateElement } from '@amazee/ckeditor5-template/src/utils/integrity';
 import DomEventObserver from '@ckeditor/ckeditor5-engine/src/view/observer/domeventobserver';
-import { downcastAttributeToAttribute } from '@ckeditor/ckeditor5-engine/src/conversion/downcast-converters';
-import { upcastAttributeToAttribute } from '@ckeditor/ckeditor5-engine/src/conversion/upcast-converters';
 
 // TODO: Attach a generic observer to trigger dialogs?
 class LinkSelectObserver extends DomEventObserver {
@@ -67,17 +65,18 @@ export default class ButtonElement extends Plugin {
 			} );
 		} );
 
-		this.editor.conversion.for( 'downcast' ).add( downcastAttributeToAttribute( {
+		this.editor.conversion.for( 'downcast' ).attributeToAttribute( {
 			model: 'link-target',
 			view: 'link-target',
-		} ) );
+		} );
 
-		this.editor.conversion.for( 'upcast' ).add( upcastAttributeToAttribute( {
+		this.editor.conversion.for( 'upcast' ).attributeToAttribute( {
 			view: 'link-target',
 			model: 'link-target',
-		} ) );
+		} );
 
 		// Default editing downcast conversions for template container elements without functionality.
+		// @todo: fix "downcastTemplateElement"
 		this.editor.conversion.for( 'editingDowncast' ).add( downcastTemplateElement( this.editor, {
 			types: [ 'button' ],
 			view: ( templateElement, modelElement, viewWriter ) => {
@@ -85,8 +84,9 @@ export default class ButtonElement extends Plugin {
 					'ck-button',
 					getModelAttributes( templateElement, modelElement )
 				);
-			}
-		} ), { priority: 'high ' } );
+			},
+			converterPriority: 'high'
+		} ) );
 
 		// Postfix elements to make sure a templates structure is always correct.
 		this.editor.templates.registerPostFixer( [ 'button' ], postfixTemplateElement );
